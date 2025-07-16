@@ -1,3 +1,5 @@
 devices.db
 syslog.log
 venv
+build
+__pycache__
