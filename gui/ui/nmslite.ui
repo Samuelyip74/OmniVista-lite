@@ -1079,60 +1079,7 @@
                     </layout>
                    </item>
                    <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_8">
-                     <item>
-                      <widget class="QLabel" name="label_7">
-                       <property name="maximumSize">
-                        <size>
-                         <width>250</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>Send daily backup report</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QRadioButton" name="t4_backup_report_yes">
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>Yes</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QRadioButton" name="t4_backup_report_no">
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>No</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <spacer name="horizontalSpacer_16">
-                       <property name="orientation">
-                        <enum>Qt::Orientation::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>20</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                    </layout>
+                    <layout class="QHBoxLayout" name="horizontalLayout_8"/>
                    </item>
                   </layout>
                  </item>
@@ -1203,8 +1150,6 @@
   <tabstop>t4_recipients</tabstop>
   <tabstop>t4_test_btn</tabstop>
   <tabstop>t4_backup_days</tabstop>
-  <tabstop>t4_backup_report_yes</tabstop>
-  <tabstop>t4_backup_report_no</tabstop>
   <tabstop>t4_save_btn</tabstop>
  </tabstops>
  <resources/>

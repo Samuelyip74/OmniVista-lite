@@ -36,6 +36,13 @@ SYSLOG_FILE = os.path.join(LOG_DIR, "syslog")
 os.makedirs(BACKUP_DIR, exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
 
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller .exe"""
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
 class OmniVistaLite(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -46,8 +53,8 @@ class OmniVistaLite(QMainWindow):
         self.ui.setupUi(self)
 
         # Set window icon and logo
-        self.setWindowIcon(QIcon("assets/logo-small.jpg"))
-        self.ui.logo.setPixmap(QPixmap("assets/logo.png"))
+        self.setWindowIcon(QIcon(resource_path("assets/logo-small.jpg")))
+        self.ui.logo.setPixmap(QPixmap(resource_path("assets/logo.png")))
 
         # Set up database
         self.db = sqlite3.connect(DB_PATH)
