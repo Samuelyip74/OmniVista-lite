@@ -318,7 +318,8 @@ class OmniVistaLite(QMainWindow):
         if index == 0:
             self.load_dashboard()
         if index == 1:
-            self.load_devices()    
+            self.load_devices()  
+            self.clear_fields()  
         if index == 2:
             self.load_syslog_messages()   
         if index == 3:
@@ -326,6 +327,8 @@ class OmniVistaLite(QMainWindow):
 
     def clear_fields(self):
         self.ui.t2_i_ip_address.clear()
+        self.ui.t2_i_ip_address.setDisabled(False)
+        self.ui.t2_inventory_table.clearSelection()
         self.ui.t2_i_username.clear()
         self.ui.t2_i_password.clear()
         self.ui.t2_omniswitch_radio.setAutoExclusive(False)
@@ -396,12 +399,13 @@ class OmniVistaLite(QMainWindow):
         # Get real device data from memory
         device = self.devices[row]  # Same order as SELECT
 
-        ip = device[2]
-        username = device[3]
-        password = device[4]
-        dev_type = device[5]
+        ip = device[4]
+        username = device[9]
+        password = device[10]
+        dev_type = device[0]
 
         self.ui.t2_i_ip_address.setText(ip)
+        self.ui.t2_i_ip_address.setDisabled(True)
         self.ui.t2_i_username.setText(username)
         self.ui.t2_i_password.setText(password)
 
@@ -424,7 +428,7 @@ class OmniVistaLite(QMainWindow):
         self.devices = rows
         headers = [
             "Type", "Name", "Model", "Sw Version", "IP Address","IsAlive",
-            "Last Known","Last Check", "Backup", "Username", "Password"  
+            "Last Known","Last Checked", "Backup", "Username", "Password"  
         ]
 
         table = self.ui.t2_inventory_table
@@ -462,7 +466,7 @@ class OmniVistaLite(QMainWindow):
         self.devices = rows
         headers = [
             "Type", "Name", "Model", "Sw Version", "IP Address","IsAlive",
-            "Last Known","Last Check", "Backup", "Username", "Password"  
+            "Last Known","Last Checked", "Backup", "Username", "Password"  
         ]
 
         table = self.ui.t1_offline_table

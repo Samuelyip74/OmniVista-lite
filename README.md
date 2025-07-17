@@ -15,23 +15,21 @@ The following devices are supported
 
 ---
 
-## 🛠️ Built With
+## Built With
 
 - **PySide6**
-- **aos8_api** – for API calls
+- **Python library - aos8_api** 
 
 ---
 
-## 🛠️ Pre-requsites
+## Pre-requsites
 
 - **Windows 10 or higher**
 - **Google Chrome browser** 
 
 ---
 
-## 🚀 Installation
-
-> This library is not available on the Google Play Store.
+## Installation
 
 To install manually:
 
@@ -40,7 +38,7 @@ To install manually:
 
 ---
 
-## 📦 Howto
+## Howto
 
 ### Step 1: Add device under "inventory" tab
 
@@ -52,11 +50,11 @@ To install manually:
 ---
 
 
-## 📦 Releases
+## Releases
 
 | Version          | Date       | Notes           |
 |------------------|------------|-----------------|
-| v1.0 Build 09    | 2025-07-17 | First  Release  |
+| v1.0 Build 10    | 2025-07-17 | First  Release  |
 
 
 ---
