@@ -627,6 +627,28 @@ class Ui_nmslite(object):
 
         self.horizontalLayout_8 = QHBoxLayout()
         self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")
+        self.label_7 = QLabel(self.groupBox_8)
+        self.label_7.setObjectName(u"label_7")
+        self.label_7.setMaximumSize(QSize(250, 16777215))
+
+        self.horizontalLayout_8.addWidget(self.label_7)
+
+        self.t4_backup_report_yes = QRadioButton(self.groupBox_8)
+        self.t4_backup_report_yes.setObjectName(u"t4_backup_report_yes")
+        self.t4_backup_report_yes.setMaximumSize(QSize(16777215, 16777215))
+
+        self.horizontalLayout_8.addWidget(self.t4_backup_report_yes)
+
+        self.t4_backup_report_no = QRadioButton(self.groupBox_8)
+        self.t4_backup_report_no.setObjectName(u"t4_backup_report_no")
+        self.t4_backup_report_no.setMaximumSize(QSize(16777215, 16777215))
+
+        self.horizontalLayout_8.addWidget(self.t4_backup_report_no)
+
+        self.horizontalSpacer_16 = QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_8.addItem(self.horizontalSpacer_16)
+
 
         self.verticalLayout_4.addLayout(self.horizontalLayout_8)
 
@@ -681,7 +703,9 @@ class Ui_nmslite(object):
         QWidget.setTabOrder(self.t4_from, self.t4_recipients)
         QWidget.setTabOrder(self.t4_recipients, self.t4_test_btn)
         QWidget.setTabOrder(self.t4_test_btn, self.t4_backup_days)
-        QWidget.setTabOrder(self.t4_backup_days, self.t4_save_btn)
+        QWidget.setTabOrder(self.t4_backup_days, self.t4_backup_report_yes)
+        QWidget.setTabOrder(self.t4_backup_report_yes, self.t4_backup_report_no)
+        QWidget.setTabOrder(self.t4_backup_report_no, self.t4_save_btn)
 
         self.retranslateUi(nmslite)
 
@@ -736,6 +760,9 @@ class Ui_nmslite(object):
         self.groupBox_8.setTitle(QCoreApplication.translate("nmslite", u"Backup setting", None))
         self.label_6.setText(QCoreApplication.translate("nmslite", u"Retain configuration for", None))
         self.label_5.setText(QCoreApplication.translate("nmslite", u"day(s)", None))
+        self.label_7.setText(QCoreApplication.translate("nmslite", u"Send daily backup report", None))
+        self.t4_backup_report_yes.setText(QCoreApplication.translate("nmslite", u"Yes", None))
+        self.t4_backup_report_no.setText(QCoreApplication.translate("nmslite", u"No", None))
         self.MainTabWidget.setTabText(self.MainTabWidget.indexOf(self.settings), QCoreApplication.translate("nmslite", u"Settings", None))
     # retranslateUi
 
