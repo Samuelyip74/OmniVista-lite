@@ -3,3 +3,6 @@ syslog.log
 venv
 build
 __pycache__
+backup
+config
+logs

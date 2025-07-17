@@ -21,13 +21,25 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem,QHeade
 from PySide6.QtGui import QPixmap, QIcon
 from gui.ui.nmslite_ui import Ui_nmslite
 
+# Program init
 LOGGER.setLevel(logging.WARNING)
+APP_DIR = os.path.dirname(os.path.abspath(sys.argv[0]))  # works for .exe or .py
 
-class MainWindow(QMainWindow):
+BACKUP_DIR = os.path.join(APP_DIR, "backup")
+LOG_DIR = os.path.join(APP_DIR, "logs")
+DB_PATH = os.path.join(APP_DIR, "devices.db")
+SYSLOG_FILE = os.path.join(LOG_DIR, "syslog")
+
+# Ensure directories exist
+os.makedirs(BACKUP_DIR, exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)
+
+class OmniVistaLite(QMainWindow):
     def __init__(self):
         super().__init__()
         self.devices = []
         self.current_client = None
+        self.backup_ran_today = False
         self.ui = Ui_nmslite()
         self.ui.setupUi(self)
 
@@ -36,7 +48,7 @@ class MainWindow(QMainWindow):
         self.ui.logo.setPixmap(QPixmap("assets/logo.png"))
 
         # Set up database
-        self.db = sqlite3.connect("devices.db")
+        self.db = sqlite3.connect(DB_PATH)
         self.init_db()
 
         # Connect buttons
@@ -64,6 +76,7 @@ class MainWindow(QMainWindow):
 
         # Start Syslog Service
         self.start_syslog_listener()
+        self.backup_omniswitch_config()
 
         # Initialized data
         self.ui.MainTabWidget.setCurrentIndex(0)
@@ -170,7 +183,7 @@ class MainWindow(QMainWindow):
         self.db.commit()
         self.show_auto_dismiss_message("Success", f"Setting saved")
 
-    def start_syslog_listener(self, port=514, output_file="syslog.log"):
+    def start_syslog_listener(self, port=514, output_file=SYSLOG_FILE):
         def listen():
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
                 try:
@@ -195,7 +208,7 @@ class MainWindow(QMainWindow):
         thread.start()        
 
 
-    def load_syslog_messages(self, logfile="syslog.log"):
+    def load_syslog_messages(self, logfile=SYSLOG_FILE):
         self.ui.t3_major_alerts_table.clear()
         self.ui.t3_medium_alerts_table.clear()
         self.ui.t3_minor_alerts_table.clear()
@@ -240,7 +253,7 @@ class MainWindow(QMainWindow):
         except FileNotFoundError:
             print(f"[Syslog] File {logfile} not found.")
 
-    def load_critical_alerts(self, logfile="syslog.log"):
+    def load_critical_alerts(self, logfile=SYSLOG_FILE):
         self.ui.t1_syslog_alerts.clear()
 
         try:
@@ -550,6 +563,8 @@ class MainWindow(QMainWindow):
         self.load_offline_devices()
         self.load_critical_alerts()
 
+
+
     def check_all_devices_status_async(self):
         # Get list of IPs
         cursor = self.db.cursor()
@@ -764,7 +779,68 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(timeout, lambda: box.accept())
             box.exec()
         except Exception as e:
-            print(f"Failed to show auto-dismiss message: {e}")                             
+            print(f"Failed to show auto-dismiss message: {e}")     
+
+    def backup_omniswitch_config(self):
+        from datetime import datetime
+        cursor = self.db.cursor()
+
+        cursor.execute("SELECT ip, username, password, type FROM devices WHERE is_alive = 1")
+        devices = cursor.fetchall()
+
+        for ip, username, password, dev_type in devices:
+            status = "Failed"
+            try:
+                if dev_type == "OmniSwitch":
+                    baseURL = f"https://{ip}"                 
+                    client = (
+                        AosApiClientBuilder()
+                        .setBaseUrl(baseURL)
+                        .setUsername(username)
+                        .setPassword(password)
+                        .build()
+                    )
+                    result = client.cli.sendCommand("show configuration snapshot")
+                    if result.success:
+                        # Create file with datetime + IP
+                        now = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        filename = f"{ip.replace('.', '-')}_{now}.cfg"
+                        filepath = os.path.join(BACKUP_DIR, filename)
+
+                        with open(filepath, "w", encoding="utf-8") as f:
+                            f.write(result.output)                     
+                        status = "Success"
+                    client.close()
+                elif dev_type in ("Stellar AP", "Third Party"):
+                    status = "Unsupported"
+                else:
+                    status = "Unknown device type"
+
+            except Exception as e:
+                print(f"[{ip}] Backup failed: {e}")
+                status = f"Error"
+
+            # Update DB with backup result
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            cursor.execute('''
+                UPDATE devices
+                SET backup_status = ?, last_check = ?
+                WHERE ip = ?
+            ''', (status, now, ip))
+
+        self.db.commit()
+        print("[Backup] Configuration backup completed.")
+
+    def check_backup_time(self):
+        from datetime import datetime
+        now = datetime.now()
+        if now.hour == 0 and now.minute == 0:
+            if not self.backup_ran_today:
+                self.backup_omniswitch_config()
+                self.backup_ran_today = True
+        elif now.hour != 0:
+            self.backup_ran_today = False  # reset after 12am hour passes        
+
 
 class PingWorker(QObject):
     finished = Signal()
@@ -803,6 +879,6 @@ class PingWorker(QObject):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = MainWindow()
+    window = OmniVistaLite()
     window.show()
     sys.exit(app.exec())
