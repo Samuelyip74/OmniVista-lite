@@ -5,9 +5,11 @@ import logging
 import socket
 import threading
 import sqlite3
+import glob
+import shutil
 from email.message import EmailMessage
 import smtplib
-from datetime import datetime
+from datetime import datetime, timedelta
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -64,19 +66,21 @@ class OmniVistaLite(QMainWindow):
 
         self.check_all_devices_status_async() 
 
-        # Ping devices every 5 minutes
+        # Check devices health every 5 minutes
         self.ping_timer = QTimer(self)
         self.ping_timer.timeout.connect(self.check_all_devices_status_async)
-        self.ping_timer.start(5 * 60 * 1000)  # 5 minutes in milliseconds
+        self.ping_timer.start(5 * 60 * 1000) 
 
-        # Poll devices every 3 hours
+        # Poll devices data every 3 hours
         self.poll_timer = QTimer(self)
         self.poll_timer.timeout.connect(self.poll_devices)
-        self.poll_timer.start(3 * 60 * 60 * 1000)  # 3 hours in milliseconds
+        self.poll_timer.start(1 * 60 * 60 * 1000) 
+
+        # Schedule midnight tasks
+        self.schedule_midnight_tasks()    
 
         # Start Syslog Service
         self.start_syslog_listener()
-        self.backup_omniswitch_config()
 
         # Initialized data
         self.ui.MainTabWidget.setCurrentIndex(0)
@@ -781,7 +785,7 @@ class OmniVistaLite(QMainWindow):
         except Exception as e:
             print(f"Failed to show auto-dismiss message: {e}")     
 
-    def backup_omniswitch_config(self):
+    def backup_configuration(self):
         from datetime import datetime
         cursor = self.db.cursor()
 
@@ -804,7 +808,7 @@ class OmniVistaLite(QMainWindow):
                     if result.success:
                         # Create file with datetime + IP
                         now = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        filename = f"{ip.replace('.', '-')}_{now}.cfg"
+                        filename = f"{ip.replace('.', '_')}_{now}.cfg"
                         filepath = os.path.join(BACKUP_DIR, filename)
 
                         with open(filepath, "w", encoding="utf-8") as f:
@@ -829,17 +833,55 @@ class OmniVistaLite(QMainWindow):
             ''', (status, now, ip))
 
         self.db.commit()
-        print("[Backup] Configuration backup completed.")
 
-    def check_backup_time(self):
-        from datetime import datetime
+    def rotate_syslog_logs(self):
+
+        cursor = self.db.cursor()
+        cursor.execute("SELECT * FROM settings WHERE id = 1")
+        row = cursor.fetchone()
+        if not row:
+            return
+
+        (
+            _id, mail_server, port, protocol, username, password,
+            from_addr, recipients, retain_days, daily_report
+        ) = row
+    
+        today = datetime.now().strftime("%Y%m%d")
+        rotated_name = f"syslog_{today}.log"
+        rotated_path = os.path.join(LOG_DIR, rotated_name)
+        active_log = SYSLOG_FILE
+
+        # If current switch.log exists and is not today's rotated file
+        if os.path.exists(active_log):
+            shutil.move(active_log, rotated_path)
+
+        # Cleanup old logs older than 7 days
+        cutoff_date = datetime.now() - timedelta(days=int(retain_days))
+        for file in glob.glob(os.path.join(LOG_DIR, "syslog_*.log")):
+            basename = os.path.basename(file)
+            date_part = basename.replace("syslog_", "").replace(".log", "")
+            try:
+                file_date = datetime.strptime(date_part, "%Y%m%d")
+                if file_date < cutoff_date:
+                    os.remove(file)
+            except ValueError:
+                continue       
+
+    def schedule_midnight_tasks(self):
         now = datetime.now()
-        if now.hour == 0 and now.minute == 0:
-            if not self.backup_ran_today:
-                self.backup_omniswitch_config()
-                self.backup_ran_today = True
-        elif now.hour != 0:
-            self.backup_ran_today = False  # reset after 12am hour passes        
+        next_midnight = datetime.combine(now.date() + timedelta(days=1), datetime.min.time())
+        ms_until_midnight = int((next_midnight - now).total_seconds() * 1000)
+
+        self.midnight_timer = QTimer(self)
+        self.midnight_timer.setSingleShot(True)
+        self.midnight_timer.timeout.connect(self.run_midnight_tasks)
+        self.midnight_timer.start(ms_until_midnight)      
+
+    def run_midnight_tasks(self):
+        self.backup_configuration()
+        self.rotate_syslog_logs()
+        self.schedule_midnight_tasks()  # Reschedule for next midnight                       
 
 
 class PingWorker(QObject):
