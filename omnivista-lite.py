@@ -10,6 +10,7 @@ import shutil
 from email.message import EmailMessage
 import smtplib
 from datetime import datetime, timedelta
+import ipaddress
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -36,6 +37,12 @@ SYSLOG_FILE = os.path.join(LOG_DIR, "syslog")
 os.makedirs(BACKUP_DIR, exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
 
+def is_valid_ip(ip):
+    try:
+        ipaddress.ip_address(ip)
+        return True
+    except ValueError:
+        return False
 
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller .exe"""
@@ -333,6 +340,12 @@ class OmniVistaLite(QMainWindow):
 
     def add_or_update_device(self):
         ip = self.ui.t2_i_ip_address.text().strip()
+
+        if not is_valid_ip(ip):
+            QMessageBox.warning(self, "Error", "Input validation failed!")
+            self.ui.t2_i_ip_address.clear()
+            return
+
         username = self.ui.t2_i_username.text().strip()
         password = self.ui.t2_i_password.text().strip()
 
@@ -346,7 +359,7 @@ class OmniVistaLite(QMainWindow):
             dev_type = "Unknown"
 
         if not ip or not username or not password or dev_type == "Unknown":
-            print("Please complete all fields.")
+            QMessageBox.warning(self, "Error", "Please complete all fields.")
             return
 
         cursor = self.db.cursor()
