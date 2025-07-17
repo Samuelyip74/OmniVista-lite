@@ -56,7 +56,7 @@ To install manually:
 
 | Version          | Date       | Notes           |
 |------------------|------------|-----------------|
-| v1.0 Build 07    | 2025-07-17 | First  Release  |
+| v1.0 Build 09    | 2025-07-17 | First  Release  |
 
 
 ---
