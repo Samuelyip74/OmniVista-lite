@@ -43,6 +43,19 @@ def is_valid_ip(ip):
         return True
     except ValueError:
         return False
+    
+def is_valid_email(email):
+    pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+    return re.match(pattern, email) is not None
+
+def validate_email_list(email_string):
+    emails = [e.strip() for e in email_string.split(',')]
+    invalid = [e for e in emails if not is_valid_email(e)]
+    return invalid  # returns empty list if all are valid
+
+def is_valid_fqdn(fqdn):
+    pattern = r"^(?=.{1,253}$)(?:[a-zA-Z0-9](?:[-a-zA-Z0-9]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
+    return re.match(pattern, fqdn) is not None
 
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller .exe"""
@@ -174,6 +187,43 @@ class OmniVistaLite(QMainWindow):
         protocol = "SSL" if self.ui.t4_ssl_radio.isChecked() else "TLS"
         daily_report = 1 if self.ui.t4_backup_report_yes.isChecked() else 0
 
+        mail_server = self.ui.t4_mail_server.text()
+        if not is_valid_fqdn(mail_server):
+            QMessageBox.warning(self, "Error", "Mail Server validation failed!")
+            self.ui.t4_mail_server.clear()
+            return  
+        
+        mail_server_port = self.ui.t4_mail_server_port.text()
+        if not mail_server_port.isdigit():
+            QMessageBox.warning(self, "Error", "Port validation failed!")
+            self.ui.t4_mail_server_port.clear()
+            return  
+        
+        username = self.ui.t4_username.text()
+        if not is_valid_email(username):
+            QMessageBox.warning(self, "Error", "Username validation failed!")
+            self.ui.t4_username.clear()
+            return  
+        
+        from_email = self.ui.t4_from.text()
+        if not is_valid_email(from_email):
+            QMessageBox.warning(self, "Error", "From Email validation failed!")
+            self.ui.t4_from.clear()
+            return   
+             
+        to_recipients = self.ui.t4_recipients.text()
+        if validate_email_list(to_recipients):
+            QMessageBox.warning(self, "Error", "Recipients Email validation failed!")
+            self.ui.t4_recipients.clear()
+            return       
+
+        backup_in_days = self.ui.t4_backup_days.text()
+        if not backup_in_days.isdigit():
+            QMessageBox.warning(self, "Error", "Backup input validation failed!")
+            self.ui.t4_backup_days.clear()
+            return             
+
+
         cursor = self.db.cursor()
         cursor.execute('''
             UPDATE settings SET
@@ -188,14 +238,14 @@ class OmniVistaLite(QMainWindow):
                 daily_report = ?
             WHERE id = 1
         ''', (
-            self.ui.t4_mail_server.text(),
-            self.ui.t4_mail_server_port.text(),
+            mail_server,
+            mail_server_port,
             protocol,
-            self.ui.t4_username.text(),
+            username,
             self.ui.t4_password.text(),
-            self.ui.t4_from.text(),
-            self.ui.t4_recipients.text(),
-            int(self.ui.t4_backup_days.text() or 0),
+            from_email,
+            to_recipients,
+            int(backup_in_days or 0),
             daily_report
         ))
         self.db.commit()
@@ -520,7 +570,7 @@ class OmniVistaLite(QMainWindow):
         cursor.execute("DELETE FROM devices WHERE ip = ?", (ip,))
         self.db.commit()
 
-        print(f"Device {ip} deleted.")
+        # print(f"Device {ip} deleted.")
         
         # Refresh UI
         self.clear_fields()
