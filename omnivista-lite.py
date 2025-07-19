@@ -127,7 +127,8 @@ class OmniVistaLite(QMainWindow):
                 is_alive INTEGER,
                 last_alive TEXT,
                 backup_status TEXT,
-                last_check TEXT
+                last_check TEXT,
+                last_alert_status TEXT
             )
         ''')
 
@@ -668,26 +669,54 @@ class OmniVistaLite(QMainWindow):
 
     def update_device_status(self, ip, is_alive, timestamp):
         cursor = self.db.cursor()
+        cursor.execute("SELECT is_alive, last_alert_status, name FROM devices WHERE ip = ?", (ip,))
+        row = cursor.fetchone()
+        if not row:
+            return
+        prev_is_alive, last_alert_status, name = row
+        name = name or ip  # fallback
+
+        alert_triggered = False
+        alert_recovered = False
+
+        if is_alive and last_alert_status == "Down":
+            # Recovery
+            alert_recovered = True
+            new_alert_status = "Up"
+        elif not is_alive and last_alert_status != "Down":
+            # Failure
+            alert_triggered = True
+            new_alert_status = "Down"
+        else:
+            new_alert_status = last_alert_status  # no change
+
         if is_alive:
             cursor.execute('''
                 UPDATE devices SET
                     is_alive = 1,
                     last_alive = ?,
-                    last_check = ?
+                    last_check = ?,
+                    last_alert_status = ?
                 WHERE ip = ?
-            ''', (timestamp, timestamp, ip))
+            ''', (timestamp, timestamp, new_alert_status, ip))
         else:
             cursor.execute('''
                 UPDATE devices SET
                     is_alive = 0,
-                    last_check = ?
+                    last_check = ?,
+                    last_alert_status = ?
                 WHERE ip = ?
-            ''', (timestamp, ip))
+            ''', (timestamp, new_alert_status, ip))
 
-        self.db.commit()  
+        self.db.commit()
+
+        if alert_triggered:
+            self.send_device_alert(ip, name, up=False)
+        elif alert_recovered:
+            self.send_device_alert(ip, name, up=True)
 
     def poll_device(self, ip, username, password, dev_type):
-        print("Polling device for inventory update...")
+        # print("Polling device for inventory update...")
         cursor = self.db.cursor()
         
         name = None
@@ -734,7 +763,7 @@ class OmniVistaLite(QMainWindow):
                 WHERE ip = ?
             ''', (version, model, is_alive, now, name, now, ip))
             self.db.commit()
-            print(f"[{ip}] Inventory updated.")
+            # print(f"[{ip}] Inventory updated.")
 
         except Exception as e:
             print(f"[{ip}] Polling failed: {e}")
@@ -774,7 +803,7 @@ class OmniVistaLite(QMainWindow):
                     # Replace this with actual API endpoint for those devices
 
                 else:
-                    print(f"[{ip}] Unknown device type: {dev_type}")
+                    # print(f"[{ip}] Unknown device type: {dev_type}")
                     continue
 
                 cursor.execute('''
@@ -785,10 +814,56 @@ class OmniVistaLite(QMainWindow):
                     WHERE ip = ?
                 ''', (version, model, name, ip))
                 self.db.commit()
-                print(f"[{ip}] Inventory updated.")
+                # print(f"[{ip}] Inventory updated.")
 
             except Exception as e:
-                print(f"[{ip}] Polling failed: {e}")     
+                print(f"[{ip}] Polling failed: {e}")   
+
+    def send_device_alert(self, ip, name, up=True):
+        cursor = self.db.cursor()
+        cursor.execute("SELECT * FROM settings WHERE id = 1")
+        row = cursor.fetchone()
+        if not row:
+            return
+
+        (
+            _id, mail_server, port, protocol, username, password,
+            from_addr, recipients, retain_days, daily_report
+        ) = row
+
+        if not all([mail_server, port, protocol, username, password, from_addr, recipients]):
+            # print(f"Email alert not sent: Incomplete settings.")
+            return
+
+        status = "RECOVERED" if up else "DOWN"
+        subject = f"[ALERT] Device {name} ({ip}) is {status}"
+        body = f"""
+    Device Status Alert
+
+    Device: {name}
+    IP: {ip}
+    Status: {status}
+    Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    """
+
+        result = self.send_email(
+            mail_server=mail_server,
+            port=port,
+            protocol=protocol,
+            username=username,
+            password=password,
+            from_addr=from_addr,
+            to_addrs=recipients,
+            subject=subject,
+            body=body
+        )
+
+        if result:
+            pass
+            # print(f"Email alert sent for {ip} ({status})")
+        else:
+            pass
+            # print(f"Failed to send alert for {ip} ({status})")              
 
     def send_email(self, mail_server, port, protocol, username, password, from_addr, to_addrs, subject, body):
         msg = EmailMessage()
@@ -952,10 +1027,73 @@ class OmniVistaLite(QMainWindow):
         self.midnight_timer.timeout.connect(self.run_midnight_tasks)
         self.midnight_timer.start(ms_until_midnight)      
 
+    def send_daily_status_report(self):
+        cursor = self.db.cursor()
+        cursor.execute("SELECT COUNT(*) FROM devices")
+        total = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM devices WHERE is_alive = 1")
+        online = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM devices WHERE is_alive IS NULL OR is_alive = 0")
+        offline = cursor.fetchone()[0]
+
+        # Load settings
+        cursor.execute("SELECT * FROM settings WHERE id = 1")
+        row = cursor.fetchone()
+        if not row:
+            return
+
+        (
+            _id, mail_server, port, protocol, username, password,
+            from_addr, recipients, retain_days, daily_report
+        ) = row
+
+        if daily_report != 1:
+            print("Daily report disabled.")
+            return
+
+        if not all([mail_server, port, username, password, from_addr, recipients]):
+            print("Missing email settings. Daily report skipped.")
+            return
+
+        subject = "Daily NMS Device Status Report"
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        body = f"""NMS Daily Device Report
+    ==========================
+    Time: {now}
+
+    Total devices: {total}
+    Online devices: {online}
+    Offline devices: {offline}
+
+    This is an automated report from OmniVista Lite.
+    """
+
+        result = self.send_email(
+            mail_server=mail_server,
+            port=port,
+            protocol=protocol,
+            username=username,
+            password=password,
+            from_addr=from_addr,
+            to_addrs=recipients,
+            subject=subject,
+            body=body
+        )
+
+        if result:
+            print("[✓] Daily status report sent.")
+        else:
+            print("[✗] Failed to send daily status report.")
+
+
     def run_midnight_tasks(self):
+        self.send_daily_status_report()
         self.backup_configuration()
         self.rotate_syslog_logs()
-        self.schedule_midnight_tasks()  # Reschedule for next midnight                       
+        self.schedule_midnight_tasks()  
+                           
 
 
 class PingWorker(QObject):
