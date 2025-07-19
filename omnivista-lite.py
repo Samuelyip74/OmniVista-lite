@@ -438,17 +438,42 @@ class OmniVistaLite(QMainWindow):
         self.load_syslog_messages()
 
     def on_tab_changed(self, index):
-        if index == 0:
-            self.load_dashboard()
-        if index == 1:
-            self.load_devices()  
-            self.clear_fields()  
-        if index == 2:
-            self.load_syslog_messages()   
-        if index == 3:
-            self.load_settings() 
+        """
+        Handle tab switch events in the main GUI.
+
+        This method responds to changes in the selected tab in the main window and triggers
+        loading of the relevant UI data for each tab:
+        
+        - Tab 0: Load the dashboard view (device counts and alerts)
+        - Tab 1: Load the devices inventory and clear input fields
+        - Tab 2: Load syslog messages
+        - Tab 3: Load email and backup settings
+
+        Args:
+            index (int): Index of the selected tab
+        """         
+        match index:
+            case 0:
+                self.load_dashboard()
+            case 1:
+                self.load_devices()
+                self.clear_fields()
+            case 2:
+                self.load_syslog_messages()
+            case 3:
+                self.load_settings()
 
     def clear_fields(self):
+        """
+        Reset all input fields in the device inventory tab.
+
+        This method clears the IP address, username, and password fields,
+        deselects any selected row in the inventory table, and resets the
+        device type radio buttons (`OmniSwitch`, `Stellar AP`, `Third Party`)
+        to an unselected state without breaking the auto-exclusive behavior.
+
+        This is typically called when adding a new device or switching tabs.
+        """        
         self.ui.t2_i_ip_address.clear()
         self.ui.t2_i_ip_address.setDisabled(False)
         self.ui.t2_inventory_table.clearSelection()
@@ -464,58 +489,82 @@ class OmniVistaLite(QMainWindow):
         self.ui.t2_stellar_radio.setAutoExclusive(True)
         self.ui.t2_third_party_radio.setAutoExclusive(True)
 
-    def add_or_update_device(self):
-        ip = self.ui.t2_i_ip_address.text().strip()
+    def _get_device_type(self):
+        """
+        Determine which device type radio button is selected.
 
+        Returns:
+            str | None: The selected device type, or None if not selected.
+        """
+        if self.ui.t2_omniswitch_radio.isChecked():
+            return "OmniSwitch"
+        if self.ui.t2_stellar_radio.isChecked():
+            return "Stellar AP"
+        if self.ui.t2_third_party_radio.isChecked():
+            return "Third Party"
+        return None
+
+    def add_or_update_device(self):
+        """
+        Add a new device to the inventory or update an existing one.
+
+        This method reads device details (IP, username, password, type) from the GUI form,
+        validates the input, and updates the SQLite database accordingly. If the IP already
+        exists in the database, it updates the username, password, and type. Otherwise, it
+        inserts a new device record.
+
+        After saving, it clears the input fields, refreshes the device list, and polls the
+        device for updated inventory information.
+
+        Validation includes:
+        - Valid IPv4 address format
+        - Username and password presence
+        - Valid selection of a device type (OmniSwitch, Stellar AP, or Third Party)
+
+        GUI alerts are shown for any validation errors.
+        """
+        ip = self.ui.t2_i_ip_address.text().strip()
         if not is_valid_ip(ip):
-            QMessageBox.warning(self, "Error", "Input validation failed!")
-            self.ui.t2_i_ip_address.clear()
+            QMessageBox.warning(self, "Error", f"Invalid IP address: {ip}")
             return
 
         username = self.ui.t2_i_username.text().strip()
         password = self.ui.t2_i_password.text().strip()
+        dev_type = self._get_device_type()
 
-        if self.ui.t2_omniswitch_radio.isChecked():
-            dev_type = "OmniSwitch"
-        elif self.ui.t2_stellar_radio.isChecked():
-            dev_type = "Stellar AP"
-        elif self.ui.t2_third_party_radio.isChecked():
-            dev_type = "Third Party"
-        else:
-            dev_type = "Unknown"
-
-        if not ip or not username or not password or dev_type == "Unknown":
+        if not all([ip, username, password, dev_type]):
             QMessageBox.warning(self, "Error", "Please complete all fields.")
             return
 
-        cursor = self.db.cursor()
+        try:
+            cursor = self.db.cursor()
+            cursor.execute("SELECT ip FROM devices WHERE ip=?", (ip,))
+            exists = cursor.fetchone()
 
-        # Check if device already exists
-        cursor.execute("SELECT ip FROM devices WHERE ip=?", (ip,))
-        exists = cursor.fetchone()
+            if exists:
+                cursor.execute('''
+                    UPDATE devices SET
+                        username = ?,
+                        password = ?,
+                        type = ?
+                    WHERE ip = ?
+                ''', (username, password, dev_type, ip))
+                logging.info(f"Device {ip} updated in the database.")
+            else:
+                cursor.execute('''
+                    INSERT INTO devices (ip, username, password, type)
+                    VALUES (?, ?, ?, ?)
+                ''', (ip, username, password, dev_type))
+                self.show_auto_dismiss_message("Success", f"Device {ip} added.")
 
-        if exists:
-            # Only update known fields
-            cursor.execute('''
-                UPDATE devices SET
-                    username = ?,
-                    password = ?,
-                    type = ?
-                WHERE ip = ?
-            ''', (username, password, dev_type, ip))
-            print(f"Device {ip} updated.")
-        else:
-            # Insert known fields, leave others as NULL
-            cursor.execute('''
-                INSERT INTO devices (ip, username, password, type)
-                VALUES (?, ?, ?, ?)
-            ''', (ip, username, password, dev_type))
-            self.show_auto_dismiss_message("Success", f"Device {ip} added.")
+            self.db.commit()
+        except Exception as e:
+            logging.error(f"Database error during add/update device: {e}")
+            QMessageBox.critical(self, "Error", "Database operation failed.")
+            return
 
-        self.db.commit()
         self.clear_fields()
-
-        self.poll_device(ip, username, password, dev_type)        
+        self.poll_device(ip, username, password, dev_type)  # Refresh inventory info
         self.load_devices()
 
     def select_device(self, row, col):
@@ -798,6 +847,7 @@ class OmniVistaLite(QMainWindow):
         version = None
         is_alive = 0
         client = None
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")      
 
         try:
             if dev_type == "OmniSwitch":
@@ -818,7 +868,6 @@ class OmniVistaLite(QMainWindow):
                         model = match.group(1)
                         version = match.group(2)
                     is_alive = 1
-                    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             elif dev_type in ("Stellar AP", "Third Party"):
                 # TODO: Add polling logic for those types
                 pass
