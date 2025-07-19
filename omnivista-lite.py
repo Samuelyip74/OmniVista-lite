@@ -588,14 +588,16 @@ class OmniVistaLite(QMainWindow):
 
         # Get the IP address from the stored device list
         device = self.devices[selected_row]
-        ip = device[2]  # Column 1 in SELECT: IP address
-        username = device[3]
-        password = device[4]
-        dev_type = device[5]
+        ip = device[4]  # Column 1 in SELECT: IP address
+        username = device[9]
+        password = device[10]
+        dev_type = device[0]
+
 
         if not ip:
             print("No IP address found.")
             return  
+
 
         if dev_type == "OmniSwitch":
             options = Options()

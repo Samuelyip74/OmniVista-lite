@@ -5,7 +5,18 @@
 
 ---
 
-## ✨ Supported Devices
+## Features
+
+- Fault management
+- Configuration management (Backup configuration)
+- Syslog monitoring  
+- Email alert (up/down)
+- Daily Report
+- Data retention
+
+---
+
+## Supported Devices
 
 The following devices are supported
 
