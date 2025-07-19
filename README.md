@@ -11,6 +11,7 @@
 - Configuration management (Backup configuration)
 - Syslog monitoring  
 - Email alert (up/down)
+- Remote device management (Remote Web Access via Chrome - auto-login)
 - Daily Report
 - Data retention
 
