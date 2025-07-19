@@ -1,3 +1,30 @@
+# omnivista-lite.py
+
+"""
+# OmniVista Lite
+
+OmniVista Lite is a lightweight Network Management System (NMS) written in Python using PySide6 for GUI and aos8-api for OmniSwitch device integration. 
+It supports network device inventory management, online status monitoring, backup scheduling, syslog collection, and alerting.
+
+## Features
+- Device inventory (OmniSwitch, Stellar AP, third-party)
+- Status monitoring (via ping)
+- Syslog listener and dashboard
+- Configuration backup (OmniSwitch)
+- Email alerting and daily status report
+- GUI built with PySide6
+
+## Modules
+- GUI: `gui/ui/nmslite_ui.py`
+- API: `aos8_api.ApiBuilder`
+- DB: `SQLite`
+- Automation: `QTimer`, `threading`
+- Web access: `selenium`
+- Email: `smtplib`
+"""
+
+# Imports: standard, third-party, and internal
+
 import re
 import os
 import sys
@@ -7,6 +34,8 @@ import threading
 import sqlite3
 import glob
 import shutil
+import subprocess
+import platform
 from email.message import EmailMessage
 import smtplib
 from datetime import datetime, timedelta
@@ -24,10 +53,11 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem,QHeade
 from PySide6.QtGui import QPixmap, QIcon
 from gui.ui.nmslite_ui import Ui_nmslite
 
-# Program init
+# Logging config
 LOGGER.setLevel(logging.WARNING)
-APP_DIR = os.path.dirname(os.path.abspath(sys.argv[0]))  # works for .exe or .py
 
+# Global paths and directories
+APP_DIR = os.path.dirname(os.path.abspath(sys.argv[0]))  # works for .exe or .py
 BACKUP_DIR = os.path.join(APP_DIR, "backup")
 LOG_DIR = os.path.join(APP_DIR, "logs")
 DB_PATH = os.path.join(APP_DIR, "devices.db")
@@ -37,33 +67,75 @@ SYSLOG_FILE = os.path.join(LOG_DIR, "syslog")
 os.makedirs(BACKUP_DIR, exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
 
+# Utility Functions
 def is_valid_ip(ip):
+    """Check if an IP string is valid."""
     try:
         ipaddress.ip_address(ip)
         return True
     except ValueError:
         return False
-    
+
 def is_valid_email(email):
+    """Validate email format."""
     pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
     return re.match(pattern, email) is not None
 
 def validate_email_list(email_string):
+    """Check all emails in a comma-separated string.
+
+    Args:
+        email_string (str): Comma-separated emails
+
+    Returns:
+        List[str]: Invalid email addresses
+    """
     emails = [e.strip() for e in email_string.split(',')]
     invalid = [e for e in emails if not is_valid_email(e)]
-    return invalid  # returns empty list if all are valid
+    return invalid
 
 def is_valid_fqdn(fqdn):
+    """Validate FQDN format.
+
+    Args:
+        fqdn (str): Fully qualified domain name
+
+    Returns:
+        bool: True if valid, else False
+    """
     pattern = r"^(?=.{1,253}$)(?:[a-zA-Z0-9](?:[-a-zA-Z0-9]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
     return re.match(pattern, fqdn) is not None
 
 def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller .exe"""
+    """
+    Get absolute path to a resource, compatible with PyInstaller.
+
+    Args:
+        relative_path (str): Relative file path
+
+    Returns:
+        str: Absolute path
+    """
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
 class OmniVistaLite(QMainWindow):
+    """
+    Main application class for the OmniVista Lite Network Management System.
+
+    This GUI-based system enables users to manage network devices such as OmniSwitches,
+    monitor their online/offline status, configure alerting and email reporting, backup
+    configuration data, and collect syslog events from devices.
+
+    Inherits from:
+        QMainWindow (PySide6)
+
+    Attributes:
+        db (sqlite3.Connection): SQLite database connection
+        ui (Ui_nmslite): GUI object
+        devices (list): Cached list of devices
+    """
     def __init__(self):
         super().__init__()
         self.devices = []
@@ -1099,6 +1171,16 @@ class OmniVistaLite(QMainWindow):
 
 
 class PingWorker(QObject):
+    """
+    A background worker class to ping a list of devices asynchronously.
+
+    Signals:
+        finished (Signal): Emitted when pinging completes.
+        progress (Signal): Emitted after each ping with (ip, is_alive, timestamp).
+
+    Args:
+        devices (list): List of IP addresses to ping
+    """    
     finished = Signal()
     progress = Signal(str, bool, str)  # ip, is_alive, timestamp
 
@@ -1107,9 +1189,19 @@ class PingWorker(QObject):
         self.devices = devices
 
     def ping_device(self, ip):
-        import subprocess
-        import platform
+        """
+        Ping a single IP address to check if it is reachable.
 
+        This method determines the current platform (Windows or Unix-based)
+        and constructs the appropriate system ping command. It executes the
+        command and returns whether the ping was successful.
+
+        Args:
+            ip (str): IP address to ping.
+
+        Returns:
+            bool: True if the device responds to ping, False otherwise.
+        """        
         try:
             count = "1"
             timeout = "1000"
@@ -1124,7 +1216,13 @@ class PingWorker(QObject):
             return False
 
     def run(self):
-        from datetime import datetime
+        """
+        Execute the ping operation for all devices in the background.
+
+        Iterates through the list of devices and emits a `progress` signal
+        for each device with its IP, online status, and current timestamp.
+        Emits a `finished` signal when all devices have been processed.
+        """        
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         for ip in self.devices:
@@ -1133,6 +1231,7 @@ class PingWorker(QObject):
 
         self.finished.emit()        
 
+# Entry point
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = OmniVistaLite()
