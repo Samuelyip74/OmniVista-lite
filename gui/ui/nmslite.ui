@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>808</width>
+    <width>879</width>
     <height>697</height>
    </rect>
   </property>
@@ -662,6 +662,12 @@
                      </item>
                      <item>
                       <widget class="QLineEdit" name="t4_mail_server">
+                       <property name="minimumSize">
+                        <size>
+                         <width>250</width>
+                         <height>0</height>
+                        </size>
+                       </property>
                        <property name="maximumSize">
                         <size>
                          <width>250</width>
@@ -676,7 +682,7 @@
                         <enum>Qt::Orientation::Horizontal</enum>
                        </property>
                        <property name="sizeType">
-                        <enum>QSizePolicy::Policy::Fixed</enum>
+                        <enum>QSizePolicy::Policy::Expanding</enum>
                        </property>
                        <property name="sizeHint" stdset="0">
                         <size>
@@ -795,6 +801,12 @@
                      </item>
                      <item>
                       <widget class="QLineEdit" name="t4_username">
+                       <property name="minimumSize">
+                        <size>
+                         <width>250</width>
+                         <height>0</height>
+                        </size>
+                       </property>
                        <property name="maximumSize">
                         <size>
                          <width>250</width>
@@ -809,7 +821,7 @@
                         <enum>Qt::Orientation::Horizontal</enum>
                        </property>
                        <property name="sizeType">
-                        <enum>QSizePolicy::Policy::Fixed</enum>
+                        <enum>QSizePolicy::Policy::Expanding</enum>
                        </property>
                        <property name="sizeHint" stdset="0">
                         <size>
@@ -838,6 +850,12 @@
                      </item>
                      <item>
                       <widget class="QLineEdit" name="t4_password">
+                       <property name="minimumSize">
+                        <size>
+                         <width>250</width>
+                         <height>0</height>
+                        </size>
+                       </property>
                        <property name="maximumSize">
                         <size>
                          <width>250</width>
@@ -855,7 +873,7 @@
                         <enum>Qt::Orientation::Horizontal</enum>
                        </property>
                        <property name="sizeType">
-                        <enum>QSizePolicy::Policy::Fixed</enum>
+                        <enum>QSizePolicy::Policy::Expanding</enum>
                        </property>
                        <property name="sizeHint" stdset="0">
                         <size>
@@ -884,6 +902,12 @@
                      </item>
                      <item>
                       <widget class="QLineEdit" name="t4_from">
+                       <property name="minimumSize">
+                        <size>
+                         <width>250</width>
+                         <height>0</height>
+                        </size>
+                       </property>
                        <property name="maximumSize">
                         <size>
                          <width>250</width>
@@ -898,7 +922,7 @@
                         <enum>Qt::Orientation::Horizontal</enum>
                        </property>
                        <property name="sizeType">
-                        <enum>QSizePolicy::Policy::Fixed</enum>
+                        <enum>QSizePolicy::Policy::Expanding</enum>
                        </property>
                        <property name="sizeHint" stdset="0">
                         <size>
@@ -927,6 +951,12 @@
                      </item>
                      <item>
                       <widget class="QLineEdit" name="t4_recipients">
+                       <property name="minimumSize">
+                        <size>
+                         <width>250</width>
+                         <height>0</height>
+                        </size>
+                       </property>
                        <property name="maximumSize">
                         <size>
                          <width>250</width>
@@ -941,7 +971,7 @@
                         <enum>Qt::Orientation::Horizontal</enum>
                        </property>
                        <property name="sizeType">
-                        <enum>QSizePolicy::Policy::Fixed</enum>
+                        <enum>QSizePolicy::Policy::Expanding</enum>
                        </property>
                        <property name="sizeHint" stdset="0">
                         <size>

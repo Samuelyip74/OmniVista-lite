@@ -168,7 +168,7 @@ class OmniVistaLite(QMainWindow):
         # Check devices health every 5 minutes
         self.ping_timer = QTimer(self)
         self.ping_timer.timeout.connect(self.check_all_devices_status_async)
-        self.ping_timer.start(5 * 60 * 1000) 
+        self.ping_timer.start(1 * 60 * 1000) 
 
         # Poll devices data every 3 hours
         self.poll_timer = QTimer(self)
@@ -704,7 +704,7 @@ class OmniVistaLite(QMainWindow):
         selected_row = table.currentRow()
 
         if selected_row < 0:
-            print("No device selected.")
+            # print("No device selected.")
             return
 
         # Get the IP address from the stored device list
@@ -714,9 +714,8 @@ class OmniVistaLite(QMainWindow):
         password = device[10]
         dev_type = device[0]
 
-
         if not ip:
-            print("No IP address found.")
+            # print("No IP address found.")
             return  
 
 
@@ -729,14 +728,14 @@ class OmniVistaLite(QMainWindow):
             driver = webdriver.Chrome(service=service, options=options)
             driver.get(f"https://{ip}/#/login?goBack=%2Fdashboard")
 
-            # 🔄 Wait for username field to load
+            # Wait for username field to load
             wait = WebDriverWait(driver, 10)
 
             wait.until(EC.presence_of_element_located((By.ID, "login_username-txt")))
             wait.until(EC.presence_of_element_located((By.ID, "login_password-txt")))
             wait.until(EC.element_to_be_clickable((By.ID, "login_login-btn")))
 
-            # 🔐 Fill credentials
+            # Fill credentials
             driver.find_element(By.ID, "login_username-txt").send_keys(username)
             driver.find_element(By.ID, "login_password-txt").send_keys(password)
             driver.find_element(By.ID, "login_login-btn").click()
@@ -812,7 +811,6 @@ class OmniVistaLite(QMainWindow):
             new_alert_status = "Down"
         else:
             new_alert_status = last_alert_status  # no change
-
         if is_alive:
             cursor.execute('''
                 UPDATE devices SET
@@ -832,7 +830,6 @@ class OmniVistaLite(QMainWindow):
             ''', (timestamp, new_alert_status, ip))
 
         self.db.commit()
-
         if alert_triggered:
             self.send_device_alert(ip, name, up=False)
         elif alert_recovered:
@@ -1259,7 +1256,13 @@ class PingWorker(QObject):
             else:
                 cmd = ["ping", "-c", count, "-W", "1", ip]
 
-            result = subprocess.run(cmd, stdout=subprocess.DEVNULL)
+            result = subprocess.run(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )                
+
             return result.returncode == 0
         except Exception:
             return False

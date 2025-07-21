@@ -25,7 +25,7 @@ class Ui_nmslite(object):
     def setupUi(self, nmslite):
         if not nmslite.objectName():
             nmslite.setObjectName(u"nmslite")
-        nmslite.resize(808, 697)
+        nmslite.resize(879, 697)
         icon = QIcon()
         icon.addFile(u"../../../../assets/logo-small.jpg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         nmslite.setWindowIcon(icon)
@@ -418,11 +418,12 @@ class Ui_nmslite(object):
 
         self.t4_mail_server = QLineEdit(self.groupBox_9)
         self.t4_mail_server.setObjectName(u"t4_mail_server")
+        self.t4_mail_server.setMinimumSize(QSize(250, 0))
         self.t4_mail_server.setMaximumSize(QSize(250, 16777215))
 
         self.horizontalLayout_9.addWidget(self.t4_mail_server)
 
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_9.addItem(self.horizontalSpacer)
 
@@ -486,11 +487,12 @@ class Ui_nmslite(object):
 
         self.t4_username = QLineEdit(self.groupBox_9)
         self.t4_username.setObjectName(u"t4_username")
+        self.t4_username.setMinimumSize(QSize(250, 0))
         self.t4_username.setMaximumSize(QSize(250, 16777215))
 
         self.horizontalLayout_17.addWidget(self.t4_username)
 
-        self.horizontalSpacer_20 = QSpacerItem(40, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_20 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_17.addItem(self.horizontalSpacer_20)
 
@@ -507,12 +509,13 @@ class Ui_nmslite(object):
 
         self.t4_password = QLineEdit(self.groupBox_9)
         self.t4_password.setObjectName(u"t4_password")
+        self.t4_password.setMinimumSize(QSize(250, 0))
         self.t4_password.setMaximumSize(QSize(250, 16777215))
         self.t4_password.setEchoMode(QLineEdit.EchoMode.Password)
 
         self.horizontalLayout_18.addWidget(self.t4_password)
 
-        self.horizontalSpacer_21 = QSpacerItem(40, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_21 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_18.addItem(self.horizontalSpacer_21)
 
@@ -529,11 +532,12 @@ class Ui_nmslite(object):
 
         self.t4_from = QLineEdit(self.groupBox_9)
         self.t4_from.setObjectName(u"t4_from")
+        self.t4_from.setMinimumSize(QSize(250, 0))
         self.t4_from.setMaximumSize(QSize(250, 16777215))
 
         self.horizontalLayout_11.addWidget(self.t4_from)
 
-        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_11.addItem(self.horizontalSpacer_4)
 
@@ -550,11 +554,12 @@ class Ui_nmslite(object):
 
         self.t4_recipients = QLineEdit(self.groupBox_9)
         self.t4_recipients.setObjectName(u"t4_recipients")
+        self.t4_recipients.setMinimumSize(QSize(250, 0))
         self.t4_recipients.setMaximumSize(QSize(250, 16777215))
 
         self.horizontalLayout_12.addWidget(self.t4_recipients)
 
-        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_12.addItem(self.horizontalSpacer_5)
 
